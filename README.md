@@ -1,1 +1,1 @@
-# rezk
+# NkortaQR
