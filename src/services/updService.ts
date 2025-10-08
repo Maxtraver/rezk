@@ -147,11 +147,50 @@ export async function getReceptionsByCounterparty(counterpartyId: string) {
   return data || [];
 }
 
-// NEW FUNCTION to fetch UPD documents for the list view
-export async function getUpdDocuments(): Promise<UPDDocument[]> {
+export interface UPDDocumentWithCounterparty {
+  id: string;
+  document_number: string;
+  document_date: string;
+  total_income: number;
+  total_expense: number;
+  status: string;
+  counterparty_id: string;
+  subdivision_id: string | null;
+  created_at: string;
+  counterparties: {
+    id: string;
+    name: string;
+    inn?: string;
+  };
+  subdivisions?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export async function getUpdDocuments(): Promise<UPDDocumentWithCounterparty[]> {
   const { data, error } = await supabase
     .from('upd_documents')
-    .select('*')
+    .select(`
+      id,
+      document_number,
+      document_date,
+      total_income,
+      total_expense,
+      status,
+      counterparty_id,
+      subdivision_id,
+      created_at,
+      counterparties (
+        id,
+        name,
+        inn
+      ),
+      subdivisions (
+        id,
+        name
+      )
+    `)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -159,4 +198,85 @@ export async function getUpdDocuments(): Promise<UPDDocument[]> {
   }
 
   return data || [];
+}
+
+export async function getUpdDocumentById(updId: string): Promise<UPDDocumentWithCounterparty | null> {
+  const { data, error } = await supabase
+    .from('upd_documents')
+    .select(`
+      id,
+      document_number,
+      document_date,
+      total_income,
+      total_expense,
+      status,
+      counterparty_id,
+      subdivision_id,
+      created_at,
+      counterparties (
+        id,
+        name,
+        inn
+      ),
+      subdivisions (
+        id,
+        name
+      )
+    `)
+    .eq('id', updId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUpdLinkedReceptionItems(updId: string) {
+  const { data, error } = await supabase
+    .from('reception_items')
+    .select(`
+      id,
+      item_description,
+      work_group,
+      price,
+      quantity,
+      transaction_type,
+      accepted_motors (
+        position_in_reception,
+        motor_service_description,
+        motor_inventory_number,
+        subdivision_id,
+        subdivisions (
+          name
+        ),
+        receptions (
+          id,
+          reception_number,
+          reception_date,
+          counterparty_id
+        )
+      )
+    `)
+    .eq('upd_document_id', updId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    item_description: item.item_description,
+    work_group: item.work_group,
+    price: item.price,
+    quantity: item.quantity,
+    transaction_type: item.transaction_type,
+    motor_service_description: item.accepted_motors?.motor_service_description || '',
+    motor_inventory_number: item.accepted_motors?.motor_inventory_number || '',
+    subdivision_name: item.accepted_motors?.subdivisions?.name || null,
+    reception_number: item.accepted_motors?.receptions?.reception_number || '',
+    reception_date: item.accepted_motors?.receptions?.reception_date || '',
+    position_number: item.accepted_motors?.position_in_reception || 0,
+  }));
 }

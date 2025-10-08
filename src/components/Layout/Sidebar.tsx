@@ -11,6 +11,7 @@ import {
   Users,
   Warehouse,
   Gauge,
+  FolderArchive,
 } from 'lucide-react'
 
 interface NavItemProps {
@@ -53,6 +54,11 @@ export const Sidebar: React.FC = () => {
       to: '/app/archive',
       icon: <Archive className="w-5 h-5" />,
       label: 'Архив Приемок',
+    },
+    {
+      to: '/app/upd-archive',
+      icon: <FolderArchive className="w-5 h-5" />,
+      label: 'Архив УПД',
     },
   ]
 
